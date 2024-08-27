@@ -1,15 +1,34 @@
 const fs = require("node:fs");
 const process = require("node:process");
 
+class Keyword {
+	constructor(value, pargs = 0, fargs = 0) {
+		this.value = value;
+		this.fargs = fargs;
+		this.pargs = pargs;
+	}
+}
+
 const VERSION = "v0.0.1";
+const KEYWORDS = [
+	new Keyword("OUT", 1),
+	new Keyword("NOT", 1),
+	new Keyword("AND", 1, 1),
+	new Keyword("NAND", 1, 1),
+	new Keyword("OR", 1, 1),
+	new Keyword("NOR", 1, 1),
+	new Keyword("XOR", 1, 1),
+	new Keyword("XNOR", 1, 1),
+];
 
 let run_compile = true;
-let input_file;
-let output_file;
+let source_code;
+let source_path;
+let output_path;
 
-//////////////////
-// ARGS PARSING //
-//////////////////
+///////////////////////////////
+// COMMAND LINE ARGS PARSING //
+///////////////////////////////
 
 const printHelp = () => {
 	console.log("Usage:\n node clc.js <source> [flags]");
@@ -20,7 +39,7 @@ const printHelp = () => {
 }
 
 const setFlags = (args) => {
-	let i = 0
+	let i = 0;
 	while(i < args.length) {
 		switch(args[i]) {
 			case "-v":
@@ -41,21 +60,30 @@ const setFlags = (args) => {
 					args.splice(i, i);
 					break;
 				}
-				if(output_file !== undefined) {
+				if(output_path !== undefined) {
 					args.splice(i, i);
 					console.log("Output file must only be specified once");
 					run_compile = false;
 					break;
 				}
-				output_file = args[i+1];
-				if(output_file.slice(-4, output_file.length) !== ".asm") {
+				output_path = args[i+1];
+				if(output_path === undefined) {
+					console.log("Flag '-o' requires an argument");
+					run_compile = false;
+				}
+				if(output_path.slice(-4, output_path.length) !== ".asm") {
 					console.log("Wrong output file extension\nExpected: '.asm'");
 					run_compile = false;
 				}
 				args.splice(i, i);
 				break;
 			default:
-				i++
+				let argCopy = args[i];
+				if(argCopy.slice(0, 1) === "-") {
+					console.log(`Unknown flag ${argCopy}`);
+					run_compile = false;
+				}
+				i++;
 				break;
 		}
 	}
@@ -74,12 +102,12 @@ const setCompilerArgs = (args) => {
 		run_compile = false;
 		return;
 	}
-	if(readFile(args[2]) === undefined) {
+	if((source_code = readFile(args[2])) === undefined) {
 		console.log(`Unknown file: ${args[2]}`);
 		run_compile = false;
 		return;
 	}
-	input_file = args[2];
+	source_path = args[2];
 }
 
 const parseArgs = (args) => {
@@ -92,8 +120,8 @@ const parseArgs = (args) => {
 	if(!run_compile) return false;
 	setCompilerArgs(args);
 	if(!run_compile) return false;
-	if(output_file === undefined) {
-		output_file = input_file.slice(0, -3).concat(".asm");
+	if(output_path === undefined) {
+		output_path = source_path.slice(0, -3).concat(".asm");
 	}
 	return true;
 }
@@ -107,14 +135,84 @@ const readFile = (file) => {
 	}
 }
 
+//////////////////////////////////////
+// END OF COMMAND LINE ARGS PARSING //
+//////////////////////////////////////
+
+//////////////////
+// TOKENIZATION //
+//////////////////
+
+class Token {
+	constructor(type, value) {
+		this.type = type;
+		if(value !== undefined) this.value = value;
+	}
+}
+
+const isLetter = (c) => {
+	return c.toLowerCase() !== c.toUpperCase();
+}
+
+const isAlnum = (c) => {
+	if(c === undefined) return false;
+	if(c === "") return false;
+	if(/\s/.test(c)) return false;
+	if(!isLetter(c) && isNaN(c)) return false;
+	return true;
+}
+
+const tokenize = (code) => {
+	let tokens = [];
+	let in_comment = false;
+	for(let i = 0; i < code.length; i++) {
+		if(code.charAt(i) === "\n") in_comment = false;
+		if(in_comment) continue;
+
+		if(code.charAt(i) === ":") tokens.push(new Token("VARDEF"));
+
+		if(code.charAt(i) === ";") {
+			tokens.push(new Token("EOL"))
+			in_comment = true;
+		};
+
+		if(code.charAt(i) === "0" || code.charAt(i) === "1") tokens.push(new Token(
+			"VALUE",
+			code.charAt(i)
+		));
+
+		if(isLetter(code.charAt(i))) {
+			let buffer = code.charAt(i);
+			i++;
+			while(isAlnum(code.charAt(i))) {
+				buffer = buffer.concat(code.charAt(i));
+				i++;
+			}
+			i--;
+			let is_keyword = false;
+			KEYWORDS.forEach(e => {
+				if(e.value === (buffer)) {
+					tokens.push(new Token("KEYWORD", e))
+					is_keyword = true;
+				};
+			});
+			if(!is_keyword) tokens.push(new Token("NAME", buffer));
+		}
+	}
+	console.log(tokens);
+	return tokens;
+}
+
 /////////////////////////
-// END OF ARGS PARSING //
+// END OF TOKENIZATION //
 /////////////////////////
 
 const main = () => {
 	if(!parseArgs(process.argv)) return;
-	console.log(input_file);
-	console.log(output_file);
+	console.log(`[SOURCE PATH] ${source_path}`);
+	let tokens = tokenize(source_code);
+	console.log(`[START OF CODE]\n${source_code}[END OF CODE]`);
+	console.log(`[OUTPUT PATH] ${output_path}`);
 }
 
 main();
