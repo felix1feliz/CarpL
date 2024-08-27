@@ -1,9 +1,19 @@
+//
+// TERMS AND CONDITIONS
+//
+// THIS CODE IS THE SHITTEST SHIT EVER
+// BY FOLLOWING AHEAD AND READING THIS CODE
+// YOU ACCEPT THAT I AM NOT RESPONSIBLE
+// FOR ANY INJURY CAUSED BY THIS CODE
+// BE IT A HEART ATTACK OR A BOMB EXPLOSION
+//
+
 const fs = require("node:fs");
 const process = require("node:process");
 
 class Keyword {
-	constructor(value, pargs = 0, fargs = 0) {
-		this.value = value;
+	constructor(name, pargs = 0, fargs = 0) {
+		this.name = name;
 		this.fargs = fargs;
 		this.pargs = pargs;
 	}
@@ -19,6 +29,11 @@ const KEYWORDS = [
 	new Keyword("NOR", 1, 1),
 	new Keyword("XOR", 1, 1),
 	new Keyword("XNOR", 1, 1),
+];
+
+const ROOTS = [
+	"VARDEF",
+	"OUT",
 ];
 
 let run_compile = true;
@@ -191,7 +206,7 @@ const tokenize = (code) => {
 			i--;
 			let is_keyword = false;
 			KEYWORDS.forEach(e => {
-				if(e.value === (buffer)) {
+				if(e.name === (buffer)) {
 					tokens.push(new Token("KEYWORD", e))
 					is_keyword = true;
 				};
@@ -199,7 +214,6 @@ const tokenize = (code) => {
 			if(!is_keyword) tokens.push(new Token("NAME", buffer));
 		}
 	}
-	console.log(tokens);
 	return tokens;
 }
 
@@ -207,12 +221,91 @@ const tokenize = (code) => {
 // END OF TOKENIZATION //
 /////////////////////////
 
+/////////////
+// PARSING //
+/////////////
+
+class TreeNode {
+	constructor(token, args) {
+		this.token = token;
+		this.args = args;
+	}
+}
+
+const getSentences = (tokens) => {
+	let sentences = [];
+	let buffer = [];
+	tokens.forEach(e => {
+		if(e.type === "EOL") {
+			sentences.push(buffer)
+			buffer = [];
+		} else buffer.push(e);
+	});
+	return sentences;
+}
+
+const getRoot = (sentence, sentence_num) => {
+	let root = null;
+
+	sentence.forEach((e, i) => {
+		if(root === false) return;
+		if(ROOTS.some(r => {
+			return e.type === r || (e.value !== undefined && e.value.name === r);
+		})) {
+			if(root !== null) {
+				root = false;
+				console.log(`ERROR: multiple roots in same sentence (${sentence_num+1}:${i+1})`);
+				return;
+			}
+			root = { token: e, index: i};
+		}
+	});
+	if(root === null) {
+		console.log(`ERROR: no root in sentence ${sentence_num+1}`);
+		root = false;
+	}
+	return root;
+}
+
+const parse = (tokens) => {
+	let tree = [];
+	let sentences = getSentences(tokens);
+
+	sentences.forEach((e, i) => {
+		if(tree === false) return;
+
+		let root = getRoot(e, i);
+		if(!root) {
+			tree = false;
+			return;
+		}
+
+		if(root.token.type === "VARDEF") {
+			if(e[root.index-1] === undefined || e[root.index-1].type !== "NAME") {
+				console.log(`ERROR: expected name behind definition (${i+1}:${root.index+1})`);
+				tree = false;
+				return;
+			}
+			let tree_element = new TreeNode(root, [e[root.index-1]]);
+		}
+	});
+
+	return tree;
+}
+
+////////////////////
+// END OF PARSING //
+////////////////////
+
 const main = () => {
 	if(!parseArgs(process.argv)) return;
 	console.log(`[SOURCE PATH] ${source_path}`);
-	let tokens = tokenize(source_code);
 	console.log(`[START OF CODE]\n${source_code}[END OF CODE]`);
 	console.log(`[OUTPUT PATH] ${output_path}`);
+	let tokens = tokenize(source_code);
+	//console.log(tokens);
+	let tree = parse(tokens);
+	if(tree === null) return;
 }
 
 main();
