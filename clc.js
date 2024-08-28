@@ -73,9 +73,9 @@ class OptionsHandler {
 		}
 
 		if(this.getOutputFile() === null) {
-			let extensionless_source_file = this.source_file.split(".");
+			let extensionless_source_file = this._source_file.split(".");
 			extensionless_source_file.pop();
-			extensionless_source_file.join(".");
+			extensionless_source_file = extensionless_source_file.join(".");
 			this._output_file = extensionless_source_file.concat(".asm");
 		}
 	}
@@ -212,12 +212,17 @@ class Main {
 		const COMMAND_LINE = new CommandLine();
 		const OPTIONS = new OptionsHandler();
 		OPTIONS.setOptions(COMMAND_LINE);
+		const OPTION_ERROR = OPTIONS.getErr();
+		if(OPTION_ERROR !== null) {
+			console.log(OPTION_ERROR);
+			return;
+		}
 	}
 }
 
 // NOTE: COMMENT THIS IN RELEASE
-const NUM_OF_FAILED_TESTS = Tests.runTests();
-if(NUM_OF_FAILED_TESTS === 0) Main.main();
+//const NUM_OF_FAILED_TESTS = Tests.runTests();
+//if(NUM_OF_FAILED_TESTS === 0) Main.main();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
-// Main.main();
+Main.main();

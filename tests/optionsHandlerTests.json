@@ -131,6 +131,19 @@
 	},
 	{
 		"data": {
+			"argv": ["test", "test", "test.cl"],
+			"argc": 3
+		},
+		"result": {
+			"help": false,
+			"source_file": "test.cl",
+			"output_file": "test.asm",
+			"err": null,
+			"shouldCompile": true
+		}
+	},
+	{
+		"data": {
 			"argv": ["test", "test"],
 			"argc": 2
 		},
