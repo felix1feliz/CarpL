@@ -1,311 +1,223 @@
-//
-// TERMS AND CONDITIONS
-//
-// THIS CODE IS THE SHITTEST SHIT EVER
-// BY FOLLOWING AHEAD AND READING THIS CODE
-// YOU ACCEPT THAT I AM NOT RESPONSIBLE
-// FOR ANY INJURY CAUSED BY THIS CODE
-// BE IT A HEART ATTACK OR A BOMB EXPLOSION
-//
-
-const fs = require("node:fs");
 const process = require("node:process");
 
-class Keyword {
-	constructor(name, pargs = 0, fargs = 0) {
-		this.name = name;
-		this.fargs = fargs;
-		this.pargs = pargs;
+class CommandLine {
+	constructor() {
+		this.argv = process.argv;
+		this.argc = this.argv.length;
 	}
 }
 
-const VERSION = "v0.0.1";
-const KEYWORDS = [
-	new Keyword("OUT", 1),
-	new Keyword("NOT", 1),
-	new Keyword("AND", 1, 1),
-	new Keyword("NAND", 1, 1),
-	new Keyword("OR", 1, 1),
-	new Keyword("NOR", 1, 1),
-	new Keyword("XOR", 1, 1),
-	new Keyword("XNOR", 1, 1),
-];
+class OptionsHandler {
+	constructor() {
+		this._help = false;
+		this._source_file = null;
+		this._output_file = null;
+		this._err = null;
+	}
 
-const ROOTS = [
-	"VARDEF",
-	"OUT",
-];
+	setOptions({ argv, argc }) {
+		// Remove executable from args
+		argv = argv.slice(2, argc);
+		argc -= 2;
 
-let run_compile = true;
-let source_code;
-let source_path;
-let output_path;
-
-///////////////////////////////
-// COMMAND LINE ARGS PARSING //
-///////////////////////////////
-
-const printHelp = () => {
-	console.log("Usage:\n node clc.js <source> [flags]");
-	console.log("Flags:");
-	console.log(" -v --version:         print current version");
-	console.log(" -h --help:            print help");
-	console.log(" -o --output <output>: select output file");
-}
-
-const setFlags = (args) => {
-	let i = 0;
-	while(i < args.length) {
-		switch(args[i]) {
-			case "-v":
-			case "--version":
-				run_compile = false;
-				console.log(VERSION);
-				args.splice(i, i-1);
-				break;
-			case "-h":
-			case "--help":
-				run_compile = false;
-				printHelp();
-				args.splice(i, i-1);
-				break;
-			case "-o":
-			case "--output":
-				if(run_compile === false) {
-					args.splice(i, i);
+		for(let i = 0; i < argc; i++) {
+			let file_extension;
+			switch(argv[i]) {
+				case "-h":
+				case "--help":
+					if(argc !== 1) {
+						this._err = "Arguments incompatible with flag '-h'";
+						return;
+					}
+					this._help = true;
 					break;
-				}
-				if(output_path !== undefined) {
-					args.splice(i, i);
-					console.log("Output file must only be specified once");
-					run_compile = false;
+				case "-o":
+				case "--output":
+					i++;
+					if(this.getOutputFile() !== null) {
+						this._err = "Can only specify output file once";
+						return;
+					}
+					if(i >= argc) {
+						this._err = "Output flag requires an argument";
+						return;
+					}
+					file_extension = argv[i].split(".").pop();
+					if(file_extension !== "asm") {
+						this._err = `Output file '${argv[i]}' must have file extension '.asm'`;
+						return;
+					}
+					this._output_file = argv[i];
 					break;
-				}
-				output_path = args[i+1];
-				if(output_path === undefined) {
-					console.log("Flag '-o' requires an argument");
-					run_compile = false;
-				}
-				if(output_path.slice(-4, output_path.length) !== ".asm") {
-					console.log("Wrong output file extension\nExpected: '.asm'");
-					run_compile = false;
-				}
-				args.splice(i, i);
-				break;
-			default:
-				let argCopy = args[i];
-				if(argCopy.slice(0, 1) === "-") {
-					console.log(`Unknown flag ${argCopy}`);
-					run_compile = false;
-				}
-				i++;
-				break;
-		}
-	}
-}
+				default:
+					if(this.getSourceFile() !== null) {
+						this._err = `Unwanted argument '${argv[i]}'`;
+						return;
+					}
+					file_extension = argv[i].split(".").pop();
+					if(file_extension !== "cl") {
+						this._err = `Source code '${argv[i]}' must have file extension '.cl'`;
+						return;
+					}
+					this._source_file = argv[i];
 
-const setCompilerArgs = (args) => {
-	// NOTE: ONLY SINGLE FILE APPLICATIONS EXIST FOR NOW
-	// TODO: IMPLEMENT MULTIPLE FILES APPLICATION
-	if(args[2] === undefined) {
-		console.log("Source file not specified")
-		run_compile = false;
-		return;
-	}
-	if(args[2].slice(-3, args[2].length) !== ".cl") {
-		console.log("Wrong source file extension\nExpected: '.cl'");
-		run_compile = false;
-		return;
-	}
-	if((source_code = readFile(args[2])) === undefined) {
-		console.log(`Unknown file: ${args[2]}`);
-		run_compile = false;
-		return;
-	}
-	source_path = args[2];
-}
-
-const parseArgs = (args) => {
-	if(args.length === 2) {
-		printHelp();
-		return false;
-	}
-
-	setFlags(args);
-	if(!run_compile) return false;
-	setCompilerArgs(args);
-	if(!run_compile) return false;
-	if(output_path === undefined) {
-		output_path = source_path.slice(0, -3).concat(".asm");
-	}
-	return true;
-}
-
-const readFile = (file) => {
-	try {
-		const DATA = fs.readFileSync(file, "utf8");
-		return DATA;
-	} catch {
-		return undefined;
-	}
-}
-
-//////////////////////////////////////
-// END OF COMMAND LINE ARGS PARSING //
-//////////////////////////////////////
-
-//////////////////
-// TOKENIZATION //
-//////////////////
-
-class Token {
-	constructor(type, value) {
-		this.type = type;
-		if(value !== undefined) this.value = value;
-	}
-}
-
-const isLetter = (c) => {
-	return c.toLowerCase() !== c.toUpperCase();
-}
-
-const isAlnum = (c) => {
-	if(c === undefined) return false;
-	if(c === "") return false;
-	if(/\s/.test(c)) return false;
-	if(!isLetter(c) && isNaN(c)) return false;
-	return true;
-}
-
-const tokenize = (code) => {
-	let tokens = [];
-	let in_comment = false;
-	for(let i = 0; i < code.length; i++) {
-		if(code.charAt(i) === "\n") in_comment = false;
-		if(in_comment) continue;
-
-		if(code.charAt(i) === ":") tokens.push(new Token("VARDEF"));
-
-		if(code.charAt(i) === ";") {
-			tokens.push(new Token("EOL"))
-			in_comment = true;
-		};
-
-		if(code.charAt(i) === "0" || code.charAt(i) === "1") tokens.push(new Token(
-			"VALUE",
-			code.charAt(i)
-		));
-
-		if(isLetter(code.charAt(i))) {
-			let buffer = code.charAt(i);
-			i++;
-			while(isAlnum(code.charAt(i))) {
-				buffer = buffer.concat(code.charAt(i));
-				i++;
+					break;
 			}
-			i--;
-			let is_keyword = false;
-			KEYWORDS.forEach(e => {
-				if(e.name === (buffer)) {
-					tokens.push(new Token("KEYWORD", e))
-					is_keyword = true;
-				};
-			});
-			if(!is_keyword) tokens.push(new Token("NAME", buffer));
 		}
-	}
-	return tokens;
-}
 
-/////////////////////////
-// END OF TOKENIZATION //
-/////////////////////////
+		if(this.getHelp()) return;
 
-/////////////
-// PARSING //
-/////////////
-
-class TreeNode {
-	constructor(token, args) {
-		this.token = token;
-		this.args = args;
-	}
-}
-
-const getSentences = (tokens) => {
-	let sentences = [];
-	let buffer = [];
-	tokens.forEach(e => {
-		if(e.type === "EOL") {
-			sentences.push(buffer)
-			buffer = [];
-		} else buffer.push(e);
-	});
-	return sentences;
-}
-
-const getRoot = (sentence, sentence_num) => {
-	let root = null;
-
-	sentence.forEach((e, i) => {
-		if(root === false) return;
-		if(ROOTS.some(r => {
-			return e.type === r || (e.value !== undefined && e.value.name === r);
-		})) {
-			if(root !== null) {
-				root = false;
-				console.log(`ERROR: multiple roots in same sentence (${sentence_num+1}:${i+1})`);
-				return;
-			}
-			root = { token: e, index: i};
-		}
-	});
-	if(root === null) {
-		console.log(`ERROR: no root in sentence ${sentence_num+1}`);
-		root = false;
-	}
-	return root;
-}
-
-const parse = (tokens) => {
-	let tree = [];
-	let sentences = getSentences(tokens);
-
-	sentences.forEach((e, i) => {
-		if(tree === false) return;
-
-		let root = getRoot(e, i);
-		if(!root) {
-			tree = false;
+		if(this.getSourceFile() === null) {
+			this._err = "Source file was not specified";
 			return;
 		}
 
-		if(root.token.type === "VARDEF") {
-			if(e[root.index-1] === undefined || e[root.index-1].type !== "NAME") {
-				console.log(`ERROR: expected name behind definition (${i+1}:${root.index+1})`);
-				tree = false;
-				return;
-			}
-			let tree_element = new TreeNode(root, [e[root.index-1]]);
+		if(this.getOutputFile() === null) {
+			let extensionless_source_file = this.source_file.split(".");
+			extensionless_source_file.pop();
+			extensionless_source_file.join(".");
+			this._output_file = extensionless_source_file.concat(".asm");
 		}
-	});
+	}
 
-	return tree;
+	shouldCompile() {
+		if(this._err !== null) return false;
+		if(this._help) return false;
+		return true;
+	}
+
+	// GETTERS
+	
+	getHelp() {
+		return this._help;
+	}
+
+	getSourceFile() {
+		return this._source_file;
+	}
+
+	getOutputFile() {
+		return this._output_file;
+	}
+
+	getErr() {
+		return this._err;
+	}
 }
 
-////////////////////
-// END OF PARSING //
-////////////////////
+class Tests {
+	static runTests() {
+		let num_of_failed_tests = 0;
+		console.log("+\n+ START OF TESTS\n+\n");
 
-const main = () => {
-	if(!parseArgs(process.argv)) return;
-	console.log(`[SOURCE PATH] ${source_path}`);
-	console.log(`[START OF CODE]\n${source_code}[END OF CODE]`);
-	console.log(`[OUTPUT PATH] ${output_path}`);
-	let tokens = tokenize(source_code);
-	//console.log(tokens);
-	let tree = parse(tokens);
-	if(tree === null) return;
+		console.log("[COMMAND LINE TESTS]");
+		this.runCommandLineTests().forEach((e, i) => {
+			console.log(`TEST ${i+1}: ${e}`);
+			if(e == "Failed!") num_of_failed_tests++;
+		});
+		console.log(""); // Break line
+
+		console.log("[OPTIONS HANDLER TESTS]");
+		this.runOptionsHandlerTests().forEach((e, i) => {
+			e.errors.forEach(err => {
+				console.log(err);
+			});
+			console.log(`TEST ${i+1}: ${e.ret}`);
+			if(e.ret === "Failed!") num_of_failed_tests++;
+		});
+		console.log(""); // Break line
+
+		console.log(`${num_of_failed_tests} test(s) failed`);
+		console.log(""); // Break line
+
+		console.log("-\n- END OF TESTS\n-");
+		return num_of_failed_tests;
+	}
+
+	static runCommandLineTests() {
+		let results = [];
+
+		const COMMAND_LINE = new CommandLine();
+
+		// TEST 1
+		// Tests if args were properly collected
+		if(COMMAND_LINE.argv !== process.argv) {
+			results.push("Failed!");
+		} else {
+			results.push("Succeeded!");
+		}
+
+		// TEST 2
+		// Tests if args length was properly collected
+		if(COMMAND_LINE.argc !== process.argv.length) {
+			results.push("Failed!");
+		} else {
+			results.push("Succeeded!");
+		}
+
+		return results;
+	}
+
+	static runOptionsHandlerTests() {
+		let results = []
+
+		const TESTS = require("./tests/optionsHandlerTests.json").content;
+
+		TESTS.forEach(e => {
+			let errors = [];
+			const OPTIONS = new OptionsHandler();
+			OPTIONS.setOptions(e.data);
+
+			if(OPTIONS._help !== OPTIONS.getHelp()) {
+				errors.push("ERROR: '_help' doesn't equal 'getHelp()'");
+			}
+			if(OPTIONS._source_file !== OPTIONS.getSourceFile()) {
+				errors.push("ERROR: '_source_file' doesn't equal 'getSourceFile()'");
+			}
+			if(OPTIONS._output_file !== OPTIONS.getOutputFile()) {
+				errors.push("ERROR: '_output_file' doesn't equal 'getOutputFile()'");
+			}
+			if(OPTIONS._err !== OPTIONS.getErr()) {
+				errors.push("ERROR: '_err' doesn't equal 'getErr()'");
+			}
+
+			if(e.result.help !== OPTIONS.getHelp()) {
+				errors.push(`ERROR: expected help '${e.result.help}', but got '${OPTIONS.help}'`);
+			}
+			if(e.result.source_file !== OPTIONS.getSourceFile()) {
+				errors.push(`ERROR: expected source file '${e.result.source_file}', but got '${OPTIONS.getSourceFile()}'`);
+			}
+			if(e.result.output_file !== OPTIONS.getOutputFile()) {
+				errors.push(`ERROR: expected output file '${e.result.output_file}', but got '${OPTIONS.getOutputFile()}'`);
+			}
+			if(e.result.err !== OPTIONS.getErr()) {
+				errors.push(`ERROR: expected error '${e.result.err}', but got '${OPTIONS.getErr()}'`);
+			}
+			if(e.result.shouldCompile !== OPTIONS.shouldCompile()) {
+				errors.push(`ERROR: expected should compile '${e.result.shouldCompile}', but got '${OPTIONS.shouldCompile()}'`);
+			}
+
+			if(errors.length !== 0) {
+				results.push({ret: "Failed!", errors: errors});
+			} else {
+				results.push({ret: "Succeeded!", errors: errors});
+			}
+		});
+		return results;
+	}
 }
 
-main();
+class Main {
+	static main() {
+		const COMMAND_LINE = new CommandLine();
+		const OPTIONS = new OptionsHandler();
+		OPTIONS.setOptions(COMMAND_LINE);
+	}
+}
+
+// NOTE: COMMENT THIS IN RELEASE
+const NUM_OF_FAILED_TESTS = Tests.runTests();
+if(NUM_OF_FAILED_TESTS === 0) Main.main();
+
+// NOTE: UNCOMMENT THIS IN RELEASE
+// Main.main();

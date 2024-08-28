@@ -1,0 +1,158 @@
+{ "content": [
+	{
+		"data": {
+			"argv": ["test", "test", "-h"],
+			"argc": 3
+		},
+		"result": {
+			"help": true,
+			"source_file": null,
+			"output_file": null,
+			"err": null,
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-h", "banana"],
+			"argc": 4
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": null,
+			"err": "Arguments incompatible with flag '-h'",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "test.asm", "test.cl"],
+			"argc": 5
+		},
+		"result": {
+			"help": false,
+			"source_file": "test.cl",
+			"output_file": "test.asm",
+			"err": null,
+			"shouldCompile": true
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "test.asm", "test.cl", "banana"],
+			"argc": 6
+		},
+		"result": {
+			"help": false,
+			"source_file": "test.cl",
+			"output_file": "test.asm",
+			"err": "Unwanted argument 'banana'",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "test.asm"],
+			"argc": 4
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": "test.asm",
+			"err": "Source file was not specified",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "test.asm", "source"],
+			"argc": 5
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": "test.asm",
+			"err": "Source code 'source' must have file extension '.cl'",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o"],
+			"argc": 3
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": null,
+			"err": "Output flag requires an argument",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "test"],
+			"argc": 4
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": null,
+			"err": "Output file 'test' must have file extension '.asm'",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "-h"],
+			"argc": 4
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": null,
+			"err": "Output file '-h' must have file extension '.asm'",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "-o", "test.asm", "-o"],
+			"argc": 5
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": "test.asm",
+			"err": "Can only specify output file once",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test"],
+			"argc": 2
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": null,
+			"err": "Source file was not specified",
+			"shouldCompile": false
+		}
+	},
+	{
+		"data": {
+			"argv": ["test", "test", "source"],
+			"argc": 3
+		},
+		"result": {
+			"help": false,
+			"source_file": null,
+			"output_file": null,
+			"err": "Source code 'source' must have file extension '.cl'",
+			"shouldCompile": false
+		}
+	}
+]}
