@@ -2,8 +2,24 @@ const process = require("node:process");
 
 class CommandLine {
 	constructor() {
-		this.argv = process.argv;
-		this.argc = this.argv.length;
+		this._argv = process.argv;
+		this._argc = this._argv.length;
+	}
+
+	getArgv() {
+		return this._argv;
+	}
+
+	getArgc() {
+		return this._argc;
+	}
+
+	getArgvWithoutExecutable() {
+		return this.getArgv().slice(2, this._argc);
+	}
+
+	getArgcWithoutExecutable() {
+		return this.getArgc() - 2;
 	}
 }
 
@@ -15,10 +31,9 @@ class OptionsHandler {
 		this._err = null;
 	}
 
-	setOptions({ argv, argc }) {
-		// Remove executable from args
-		argv = argv.slice(2, argc);
-		argc -= 2;
+	setOptions(args) {
+		let argv = args.getArgvWithoutExecutable();
+		let argc = args.getArgcWithoutExecutable();
 
 		for(let i = 0; i < argc; i++) {
 			let file_extension;
@@ -105,8 +120,21 @@ class OptionsHandler {
 	}
 }
 
+class OutputHandler {
+	static printHelp() {
+		console.log("Usage:");
+		console.log(" node clc.js <source>");
+		console.log("Flags:");
+		console.log(" (--help | -h)");
+		console.log("    Print usage help");
+		console.log(" (--output | -o) <output file>");
+		console.log("    Specify output file");
+	}
+}
+
 class Tests {
 	static runTests() {
+		let start_of_testing = performance.now();
 		let num_of_failed_tests = 0;
 		console.log("+\n+ START OF TESTS\n+\n");
 
@@ -127,7 +155,8 @@ class Tests {
 		});
 		console.log(""); // Break line
 
-		console.log(`${num_of_failed_tests} test(s) failed`);
+		console.log(`Time elapsed: ${Math.trunc(performance.now() - start_of_testing)}ms`);
+		console.log(`Test(s) failed: ${num_of_failed_tests}`);
 		console.log(""); // Break line
 
 		console.log("-\n- END OF TESTS\n-");
@@ -140,16 +169,51 @@ class Tests {
 		const COMMAND_LINE = new CommandLine();
 
 		// TEST 1
-		// Tests if args were properly collected
-		if(COMMAND_LINE.argv !== process.argv) {
+		// Tests if argv is in agreement with getArgv
+		if(COMMAND_LINE._argv !== COMMAND_LINE.getArgv()) {
 			results.push("Failed!");
 		} else {
 			results.push("Succeeded!");
 		}
 
 		// TEST 2
+		// Tests if args were properly collected
+		if(COMMAND_LINE.getArgv() !== process.argv) {
+			results.push("Failed!");
+		} else {
+			results.push("Succeeded!");
+		}
+
+		// TEST 3
+		// Tests if argc is in agreement with getArgc
+		if(COMMAND_LINE._argc !== COMMAND_LINE.getArgc()) {
+			results.push("Failed!");
+		} else {
+			results.push("Succeeded!");
+		}
+
+		// TEST 4
 		// Tests if args length was properly collected
-		if(COMMAND_LINE.argc !== process.argv.length) {
+		if(COMMAND_LINE.getArgc() !== process.argv.length) {
+			results.push("Failed!");
+		} else {
+			results.push("Succeeded!");
+		}
+
+		// TEST 5
+		// Tests if argv executable is being properly removed
+		COMMAND_LINE._argv = ["node", "executable"];
+		COMMAND_LINE._argc = 2;
+		
+		if(COMMAND_LINE.getArgvWithoutExecutable().length !== 0) {
+			results.push("Failed!");
+		} else {
+			results.push("Succeeded!");
+		}
+
+		// TEST 6
+		// Tests if argc without executable is being properly checked
+		if(COMMAND_LINE.getArgvWithoutExecutable().length !== COMMAND_LINE.getArgcWithoutExecutable()) {
 			results.push("Failed!");
 		} else {
 			results.push("Succeeded!");
@@ -166,6 +230,18 @@ class Tests {
 		TESTS.forEach(e => {
 			let errors = [];
 			const OPTIONS = new OptionsHandler();
+			e.data.getArgv = () => {
+				return e.data.argv;
+			};
+			e.data.getArgc = () => {
+				return e.data.argc;
+			};
+			e.data.getArgvWithoutExecutable = () => {
+				return e.data.getArgv().slice(2, this._argc);
+			};
+			e.data.getArgcWithoutExecutable = () => {
+				return e.data.getArgc() - 2;
+			}
 			OPTIONS.setOptions(e.data);
 
 			if(OPTIONS._help !== OPTIONS.getHelp()) {
@@ -217,12 +293,22 @@ class Main {
 			console.log(OPTION_ERROR);
 			return;
 		}
+
+		if(OPTIONS.getHelp()) {
+			OutputHandler.printHelp();
+		}
+
+		if(!OPTIONS.shouldCompile()) {
+			return;
+		}
 	}
 }
 
 // NOTE: COMMENT THIS IN RELEASE
-//const NUM_OF_FAILED_TESTS = Tests.runTests();
-//if(NUM_OF_FAILED_TESTS === 0) Main.main();
+
+const NUM_OF_FAILED_TESTS = Tests.runTests();
+if(NUM_OF_FAILED_TESTS === 0) Main.main();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
-Main.main();
+
+// Main.main();
