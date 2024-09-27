@@ -120,6 +120,22 @@ class OptionsHandler {
 	}
 }
 
+class SourceHandler {
+	constructor(source_file) {
+		this._source_file = source_file;
+		this._data = null;
+		this._err = null;
+	}
+
+	getData() {
+		return this._data;
+	}
+
+	getErr() {
+		return this._err;
+	}
+}
+
 class OutputHandler {
 	static printHelp() {
 		console.log("Usage:");
