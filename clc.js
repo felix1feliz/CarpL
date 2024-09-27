@@ -1,4 +1,5 @@
 const process = require("node:process");
+const fs = require("node:fs");
 
 class CommandLine {
 	constructor() {
@@ -125,6 +126,14 @@ class SourceHandler {
 		this._source_file = source_file;
 		this._data = null;
 		this._err = null;
+	}
+
+	readFile() {
+		try {
+			this.data = fs.readFileSync(this._source_file, "utf8");
+		} catch (e) {
+			this._err = e;
+		}
 	}
 
 	getData() {
@@ -317,13 +326,15 @@ class Main {
 		if(!OPTIONS.shouldCompile()) {
 			return;
 		}
+
+		const SOURCE_HANDLER = new SourceHandler(OPTIONS.getSourceFile());
 	}
 }
 
 // NOTE: COMMENT THIS IN RELEASE
 
 const NUM_OF_FAILED_TESTS = Tests.runTests();
-if(NUM_OF_FAILED_TESTS === 0) Main.main();
+//if(NUM_OF_FAILED_TESTS === 0) Main.main();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
 
