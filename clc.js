@@ -145,6 +145,22 @@ class SourceHandler {
 	}
 }
 
+class Tokenizer {
+	constructor(code) {
+		this._code = code;
+		this._tokens = [];
+		this._err = null;
+	}
+
+	getTokens() {
+		return this._tokens;
+	}
+
+	getErr() {
+		return this._err;
+	}
+}
+
 class OutputHandler {
 	static printHelp() {
 		console.log("Usage:");
@@ -391,7 +407,7 @@ class Main {
 			return;
 		}
 
-		SOURCE_HANDLER.getData();
+		const TOKENIZER = new Tokenizer(SOURCE_HANDLER.getData);
 	}
 }
 
@@ -402,4 +418,4 @@ class Main {
 
 // NOTE: UNCOMMENT THIS IN RELEASE
 
-//Main.main();
+Main.main();
