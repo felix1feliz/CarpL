@@ -155,6 +155,15 @@ class OutputHandler {
 		console.log(" (--output | -o) <output file>");
 		console.log("    Specify output file");
 	}
+
+	static printSrcHandlerError(err) {
+		if(err.includes("ENOENT: no such file or directory, open ")) {
+			console.log("Source file not found");
+			return;
+		}
+
+		console.log(err);
+	}
 }
 
 class Tests {
@@ -375,12 +384,20 @@ class Main {
 		}
 
 		const SOURCE_HANDLER = new SourceHandler(OPTIONS.getSourceFile());
+		SOURCE_HANDLER.readFile();
+
+		if(SOURCE_HANDLER.getErr() !== null) {
+			OutputHandler.printSrcHandlerError(SOURCE_HANDLER.getErr());
+			return;
+		}
+
+		SOURCE_HANDLER.getData();
 	}
 }
 
 // NOTE: COMMENT THIS IN RELEASE
 
-const NUM_OF_FAILED_TESTS = Tests.runTests();
+//const NUM_OF_FAILED_TESTS = Tests.runTests();
 //if(NUM_OF_FAILED_TESTS === 0) Main.main();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
