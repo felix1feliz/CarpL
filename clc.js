@@ -130,9 +130,9 @@ class SourceHandler {
 
 	readFile() {
 		try {
-			this.data = fs.readFileSync(this._source_file, "utf8");
+			this._data = fs.readFileSync(this._source_file, "utf8");
 		} catch (e) {
-			this._err = e;
+			this._err = e.message;
 		}
 	}
 
@@ -172,6 +172,16 @@ class Tests {
 
 		console.log("[OPTIONS HANDLER TESTS]");
 		this.runOptionsHandlerTests().forEach((e, i) => {
+			e.errors.forEach(err => {
+				console.log(err);
+			});
+			console.log(`TEST ${i+1}: ${e.ret}`);
+			if(e.ret === "Failed!") num_of_failed_tests++;
+		});
+		console.log(""); // Break line
+
+		console.log("[SOURCE HANDLER TESTS]");
+		this.runSourceHandlerTests().forEach((e, i) => {
 			e.errors.forEach(err => {
 				console.log(err);
 			});
@@ -306,6 +316,42 @@ class Tests {
 		});
 		return results;
 	}
+
+	static runSourceHandlerTests() {
+		let results = []
+
+		const TESTS = require("./tests/sourceHandlerTests.json").content;
+
+		TESTS.forEach(e => {
+			let errors = [];
+			const SOURCE_HANDLER = new SourceHandler(e.path);
+			SOURCE_HANDLER.readFile();
+
+			if(SOURCE_HANDLER._err !== SOURCE_HANDLER.getErr()) {
+				errors.push("ERROR: '_err' doesn't equal 'getErr()'");
+			}
+
+			if(SOURCE_HANDLER._data !== SOURCE_HANDLER.getData()) {
+				errors.push("ERROR: '_data' doesn't equal 'getData()'");
+			}
+
+			if(e.data !== SOURCE_HANDLER.getData()) {
+				errors.push(`ERROR: expected data '${e.data}', but got '${SOURCE_HANDLER.getData()}'`);
+			}
+
+			if(e.err !== SOURCE_HANDLER.getErr()) {
+				errors.push(`ERROR: expected error '${e.err}', but got '${SOURCE_HANDLER.getErr()}'`);
+			}
+
+			if(errors.length !== 0) {
+				results.push({ret: "Failed!", errors: errors});
+			} else {
+				results.push({ret: "Succeeded!", errors: errors});
+			}
+		});
+
+		return results;
+	}
 }
 
 class Main {
@@ -314,6 +360,7 @@ class Main {
 		const OPTIONS = new OptionsHandler();
 		OPTIONS.setOptions(COMMAND_LINE);
 		const OPTION_ERROR = OPTIONS.getErr();
+
 		if(OPTION_ERROR !== null) {
 			console.log(OPTION_ERROR);
 			return;
@@ -338,4 +385,4 @@ const NUM_OF_FAILED_TESTS = Tests.runTests();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
 
-// Main.main();
+//Main.main();

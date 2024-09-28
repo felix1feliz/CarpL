@@ -1,0 +1,12 @@
+{"content": [
+	{
+		"path": "./tests/test-file-01.cl",
+		"data": "banana\n",
+		"err": null
+	},
+	{
+		"path": "askdhkawd",
+		"data": null,
+		"err": "ENOENT: no such file or directory, open 'askdhkawd'"
+	}
+]}
