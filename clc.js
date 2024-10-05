@@ -173,6 +173,54 @@ class Tokenizer {
 		: false
 	}
 
+	tokenize() {
+		for(let i = 0; i < this._code.length; i++) {
+			if(this._code.charAt(i) === ' ') {
+				continue;
+			}
+
+			if(this._code.charAt(i) === '	') {
+				continue;
+			}
+
+			if(this._code.charAt(i) === '\n') {
+				this._tokens.push(new Token("EOL"));
+				continue;
+			}
+
+			if(this._code.charAt(i) === '0') {
+				this._tokens.push(new Token("BOOL", false));
+				continue;
+			}
+
+			if(this._code.charAt(i) === '1') {
+				this._tokens.push(new Token("BOOL", true));
+				continue;
+			}
+
+			if(this._code.charAt(i) === ';') {
+				this._tokens.push(new Token("CS")); // Comment Start
+				continue;
+			}
+
+			if(this._isAlnum(this._code.charAt(i))) {
+				let acc = "";
+				while(this._isAlnum(this._code.charAt(i))) {
+					acc = acc.concat(this._code.charAt(i));
+					i++;
+				}
+				i--;
+
+				this._tokens.push(new Token("NAME", acc));
+
+				continue;
+			}
+
+			this._err = `Unrecognized char '${this._code.charAt(i)}'`;
+			break;
+		}
+	}
+
 	getTokens() {
 		return this._tokens;
 	}
@@ -470,7 +518,6 @@ class Main {
 
 		const TOKENIZER = new Tokenizer(SOURCE_HANDLER.getData());
 		TOKENIZER.tokenize();
-		console.log(TOKENIZER.getTokens());
 	}
 }
 
