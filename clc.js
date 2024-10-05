@@ -145,11 +145,32 @@ class SourceHandler {
 	}
 }
 
+class Token {
+	constructor(type, value = null) {
+		this._type = type;
+		this._value = value;
+	}
+
+	getType() {
+		return this._type;
+	}
+
+	getValue() {
+		return this._value;
+	}
+}
+
 class Tokenizer {
 	constructor(code) {
 		this._code = code;
 		this._tokens = [];
 		this._err = null;
+	}
+
+	_isAlnum(c) {
+		return c.toUpperCase() !== c.toLowerCase() ? true
+		: /\d/.test(c) ? true
+		: false
 	}
 
 	getTokens() {
@@ -215,12 +236,21 @@ class Tests {
 		});
 		console.log(""); // Break line
 
+		console.log("[TOKENIZER TESTS]");
+		this.runTokenizerTests().forEach((e, i) => {
+			e.errors.forEach(err => {
+				console.log(err);
+			});
+			console.log(`TEST ${i+1}: ${e.ret}`);
+			if(e.ret === "Failed!") num_of_failed_tests++;
+		});
+		console.log(""); // Break line
+
 		console.log(`Time elapsed: ${Math.trunc(performance.now() - start_of_testing)}ms`);
 		console.log(`Test(s) failed: ${num_of_failed_tests}`);
 		console.log(""); // Break line
 
 		console.log("-\n- END OF TESTS\n-");
-		return num_of_failed_tests;
 	}
 
 	static runCommandLineTests() {
@@ -377,6 +407,37 @@ class Tests {
 
 		return results;
 	}
+
+	static runTokenizerTests() {
+		let results = [];
+		results = results.concat(this.runTokenizerIsAlnumTests());
+		return results;
+	}
+
+	static runTokenizerIsAlnumTests() {
+		let results = [];
+		const TESTS = [
+			{ in: '1', out: true},
+			{ in: 'A', out: true},
+			{ in: 'b', out: true},
+			{ in: '#', out: false},
+			{ in: '\n', out: false},
+			{ in: '\0', out: false},
+		];
+
+		TESTS.forEach(e => {
+			const TOKENIZER = new Tokenizer("");
+			let result = TOKENIZER._isAlnum(e.in);
+
+			if(result !== e.out) {
+				results.push({ret: "Failed!", errors: [`Expected '${e.out}', got ${result}`]});
+			} else {
+				results.push({ret: "Succeeded!", errors: []});
+			}
+		});
+
+		return results;
+	}
 }
 
 class Main {
@@ -407,13 +468,15 @@ class Main {
 			return;
 		}
 
-		const TOKENIZER = new Tokenizer(SOURCE_HANDLER.getData);
+		const TOKENIZER = new Tokenizer(SOURCE_HANDLER.getData());
+		TOKENIZER.tokenize();
+		console.log(TOKENIZER.getTokens());
 	}
 }
 
 // NOTE: COMMENT THIS IN RELEASE
 
-//const NUM_OF_FAILED_TESTS = Tests.runTests();
+//Tests.runTests();
 //if(NUM_OF_FAILED_TESTS === 0) Main.main();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
