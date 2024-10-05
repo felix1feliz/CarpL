@@ -249,6 +249,10 @@ class OutputHandler {
 
 		console.log(err);
 	}
+
+	static printGenericError(err) {
+		console.log(err);
+	}
 }
 
 class Tests {
@@ -496,7 +500,7 @@ class Main {
 		const OPTION_ERROR = OPTIONS.getErr();
 
 		if(OPTION_ERROR !== null) {
-			console.log(OPTION_ERROR);
+			OutputHandler.printGenericError(OPTION_ERROR);
 			return;
 		}
 
@@ -510,14 +514,20 @@ class Main {
 
 		const SOURCE_HANDLER = new SourceHandler(OPTIONS.getSourceFile());
 		SOURCE_HANDLER.readFile();
+		const SOURCE_HANDLER_ERR = SOURCE_HANDLER.getErr();
 
-		if(SOURCE_HANDLER.getErr() !== null) {
-			OutputHandler.printSrcHandlerError(SOURCE_HANDLER.getErr());
+		if(SOURCE_HANDLER_ERR !== null) {
+			OutputHandler.printSrcHandlerError(SOURCE_HANDLER_ERR);
 			return;
 		}
 
 		const TOKENIZER = new Tokenizer(SOURCE_HANDLER.getData());
 		TOKENIZER.tokenize();
+		const TOKENIZER_ERR = TOKENIZER.getErr();
+
+		if(TOKENIZER_ERR !== null) {
+			OutputHandler.printGenericError(TOKENIZER_ERR);
+		}
 	}
 }
 
