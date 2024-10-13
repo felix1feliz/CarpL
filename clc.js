@@ -289,7 +289,10 @@ class Tests {
 		console.log(""); // Break line
 
 		console.log("[TOKENIZER TESTS]");
-		this.runTokenizerTests().forEach((e, i) => {
+		let tktr = this.runTokenizerTests();
+
+		console.log("(_isAlnum TESTS)");
+		tktr[0].forEach((e, i) => {
 			e.errors.forEach(err => {
 				console.log(err);
 			});
@@ -462,7 +465,7 @@ class Tests {
 
 	static runTokenizerTests() {
 		let results = [];
-		results = results.concat(this.runTokenizerIsAlnumTests());
+		results.push(this.runTokenizerIsAlnumTests());
 		return results;
 	}
 
@@ -534,7 +537,6 @@ class Main {
 // NOTE: COMMENT THIS IN RELEASE
 
 //Tests.runTests();
-//if(NUM_OF_FAILED_TESTS === 0) Main.main();
 
 // NOTE: UNCOMMENT THIS IN RELEASE
 
