@@ -218,7 +218,7 @@ class Tokenizer {
 				"OUT":  new Token("OUT" ),
 				"INP":  new Token("INP" ),
 				"OUT":  new Token("OUT" ),
-			}
+			};
 
 			if(this._isAlnum(this._code.charAt(i))) {
 				let acc = "";
