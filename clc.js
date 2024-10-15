@@ -203,6 +203,23 @@ class Tokenizer {
 				continue;
 			}
 
+			if(this._code.charAt(i) === ':') {
+				this._tokens.push(new Token("VARDEF"));
+				continue;
+			}
+
+			const KEY_W = {
+				"AND":  new Token("AND" ),
+				"NAND": new Token("NAND"),
+				"XOR":  new Token("XOR" ),
+				"XNOR": new Token("XNOR"),
+				"OR":   new Token("OR"  ),
+				"NOR":  new Token("NOR" ),
+				"OUT":  new Token("OUT" ),
+				"INP":  new Token("INP" ),
+				"OUT":  new Token("OUT" ),
+			}
+
 			if(this._isAlnum(this._code.charAt(i))) {
 				let acc = "";
 				while(this._isAlnum(this._code.charAt(i))) {
@@ -211,8 +228,12 @@ class Tokenizer {
 				}
 				i--;
 
-				this._tokens.push(new Token("NAME", acc));
+				if(KEY_W[acc] !== undefined) {
+					this._tokens.push(KEY_W[acc]);
+					continue;
+				}
 
+				this._tokens.push(new Token("NAME", acc));
 				continue;
 			}
 
